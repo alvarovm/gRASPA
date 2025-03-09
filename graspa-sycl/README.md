@@ -59,6 +59,20 @@ To install gRASPA on NERSC (DOE) and QUEST (Northwestern) clusters, check out [C
 
 ### Installation on local machines
 A detailed installation note for gRASPA on CentOS/Ubuntu 24.04 is documented in the manual [here](https://zhaoli2042.github.io/gRASPA-mkdoc/Installation.html)
+### Installation for SYCL devices
+
+The follow lines are the instructions to compile for SYCL compilers, this has been tested in IntelGPU MAX and PVC which support FP64.
+
+```
+git clone https://github.com/alvarovm/gRASPA.git
+cd gRASPA/graspa-sycl
+source  /opt/intel/oneapi/setvars.sh
+cmake -DUSE_SYCL=1 . -Bbuild
+cd build && make
+
+```
+
+After compilarion the binary will be located in `gRASPA/graspa-sycl/bin`.
 
 ### Compatible GPUs
 * For NVIDIA GPUs, gRASPA code has been tested on the following NVIDIA GPUs:
