@@ -1,0 +1,6 @@
+#!/bin/bash
+for cycle in 10000 100000 1000000; do
+ echo $cycle
+ sed -i 's/.*NumberOfEquilibrationCycles.*/NumberOfEquilibrationCycles '$cycle'/g' simulation.input
+ ./device_1_cppflow_run >> result_1Mol_50Threshold_$cycle
+done

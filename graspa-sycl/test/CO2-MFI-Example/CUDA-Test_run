@@ -1,0 +1,3 @@
+#!/bin/bash
+dir=~/SYCL-Example/CUDA-RASPA/dpct_output/Simple_Code/CUDA-Compare
+$dir/nvc_main.x

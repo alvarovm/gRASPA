@@ -1,0 +1,22 @@
+There are 1 simulations
+running only one simulation
+------------------PARSING FORCE FIELD MIXING RULES----------------
+Mg              lennard-jones         55.85    2.69
+O               lennard-jones         30.19    3.12
+C               lennard-jones         52.83    3.43
+H               lennard-jones         22.14    2.57
+CH4_sp3         lennard-jones         148.0    3.73
+------------------------------------------------------------------
+-------------PARSING PSEUDO ATOMS FILE-------------
+Name: Mg, 0.00000, 24.30500, 0.00000, 0.00000
+Name: O, 0.00000, 15.99900, 0.00000, 0.00000
+Name: C, 0.00000, 12.01100, 0.00000, 0.00000
+Name: H, 0.00000, 1.00800, 0.00000, 0.00000
+Name: CH4_sp3, 0.00000, 16.00000, 0.00000, 0.00000
+---------------------------------------------------
+------------------GENERAL SIMULATION SETUP-------------
+Random Seed is 0
+Allocate space for adsorbate is 10240
+Setting Maximum Number of Steps for a Cycle, Max Step = 1
+-------------------------------------------------------
+CUDA Error: Error allocating Malloc: no CUDA-capable device is detected.

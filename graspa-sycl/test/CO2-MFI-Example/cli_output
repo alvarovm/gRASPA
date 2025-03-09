@@ -1,0 +1,116 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['dense_input'] tensor_info:
+        dtype: DT_DOUBLE
+        shape: (-1, 216)
+        name: serving_default_dense_input:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['dense_5'] tensor_info:
+        dtype: DT_DOUBLE
+        shape: (-1, 1)
+        name: StatefulPartitionedCall:0
+  Method name is: tensorflow/serving/predict
+The MetaGraph with tag set ['serve'] contains the following ops: {'BiasAdd', 'StringJoin', 'SaveV2', 'ReadVariableOp', 'StatefulPartitionedCall', 'MergeV2Checkpoints', 'DisableCopyOnRead', 'Const', 'RestoreV2', 'NoOp', 'Pack', 'Relu', 'VarHandleOp', 'Select', 'Identity', 'Placeholder', 'ShardedFilename', 'AssignVariableOp', 'StaticRegexFullMatch', 'MatMul'}
+
+Concrete Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          inputs: TensorSpec(shape=(None, 216), dtype=tf.float64, name='inputs')
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          dense_input: TensorSpec(shape=(None, 216), dtype=tf.float64, name='dense_input')
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          inputs: TensorSpec(shape=(None, 216), dtype=tf.float64, name='inputs')
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          dense_input: TensorSpec(shape=(None, 216), dtype=tf.float64, name='dense_input')
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          dense_input: TensorSpec(shape=(None, 216), dtype=tf.float64, name='dense_input')
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          inputs: TensorSpec(shape=(None, 216), dtype=tf.float64, name='inputs')
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          inputs: TensorSpec(shape=(None, 216), dtype=tf.float64, name='inputs')
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          dense_input: TensorSpec(shape=(None, 216), dtype=tf.float64, name='dense_input')
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          dense_input: TensorSpec(shape=(None, 216), dtype=tf.float64, name='dense_input')
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
