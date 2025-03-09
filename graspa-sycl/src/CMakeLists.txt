@@ -16,11 +16,8 @@ endforeach()
 
 add_executable(sycl.out ${SOURCES})
 
-# Create the final executable
-#add_executable(sycl.out $<TARGET_OBJECTS:axpy.dp> $<TARGET_OBJECTS:main> $<TARGET_OBJECTS:read_data.cpp.dp> $<TARGET_OBJECTS:data_struct> $<TARGET_OBJECTS:VDW_Coulomb.dp>)
-#add_executable(sycl.out  ${OBJECT_NAME})
+add_executable(sycl.out ${SOURCES})
 
-# Link the object files to the executable
-#target_link_libraries(sycl.out PRIVATE $<TARGET_OBJECTS:axpy.dp> $<TARGET_OBJECTS:read_data.cpp.dp> $<TARGET_OBJECTS:data_struct> $<TARGET_OBJECTS:VDW_Coulomb.dp>)
-#target_link_libraries(sycl.out  ${OBJECT_NAME})
+set (EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+target_link_libraries(sycl.out)
 
