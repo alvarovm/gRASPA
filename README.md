@@ -60,6 +60,14 @@ To install gRASPA on NERSC (DOE) and QUEST (Northwestern) clusters, check out [C
 ### Installation on local machines
 A detailed installation note for gRASPA on CentOS/Ubuntu 24.04 is documented in the manual [here](https://zhaoli2042.github.io/gRASPA-mkdoc/Installation.html)
 
+### Installation in clusters
+
+```
+cmake -DUSE_SYCL=1 -Bbuild
+cd build
+make
+```
+
 ### Compatible GPUs
 * For NVIDIA GPUs, gRASPA code has been tested on the following NVIDIA GPUs:
   * A40, A100, RTX 3080 Ti, RTX 3090, RTX 4090.
