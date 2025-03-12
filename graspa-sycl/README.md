@@ -69,8 +69,9 @@ cd gRASPA/graspa-sycl
 source  /opt/intel/oneapi/setvars.sh
 cmake -DUSE_SYCL=1 . -Bbuild
 cd build && make
-
 ```
+Execute `module use cmake` if you are using Aurora.
+
 
 After compilarion the binary will be located in `gRASPA/graspa-sycl/bin`.
 
