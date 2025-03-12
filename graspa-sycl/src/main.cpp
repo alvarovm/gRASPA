@@ -214,18 +214,22 @@ int main(void)
 
   bool RunSerialSimulations = true;
   double start = omp_get_wtime(); 
-  ///////////////////////////
+    ///////////////////////////
   // INITIALIZATION CYCLES //
   ///////////////////////////
   if(RunOneByOne)
   {
     for(size_t i = 0; i < NumberOfSimulations; i++)
     {
-      if(i > 0 && RunSingleSim) continue; 
-      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure, Sims[i].Box.Temperature);
-      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfInitializationCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Energy[i].InitialVDWReal, INITIALIZATION, SetMaxStep, MaxStepPerCycle, Constants);
+      if(i > 0 && RunSingleSim) continue;
+      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure,  SystemComponents[i].Temperature)
+;
+      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfInitializationCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Ene
+rgy[i].InitialVDW, INITIALIZATION, SetMaxStep, MaxStepPerCycle, Constants);
+//      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfInitializationCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], E
+nergy[i].InitialVDW, INITIALIZATION, SetMaxStep, MaxStepPerCycle, Constants);
     }
-  } 
+  }
 
   //////////////////////////
   // EQUILIBRATION CYCLES //
@@ -235,11 +239,13 @@ int main(void)
     for(size_t i = 0; i < NumberOfSimulations; i++)
     {
       if(i > 0 && RunSingleSim) continue;
-      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure, Sims[i].Box.Temperature);
-      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfEquilibrationCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Energy[i].InitialVDWReal, EQUILIBRATION, SetMaxStep, MaxStepPerCycle, Constants);
+      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure,  SystemComponents[i].Temperature)
+;
+      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfEquilibrationCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Ener
+gy[i].InitialVDW, EQUILIBRATION, SetMaxStep, MaxStepPerCycle, Constants);
     }
   }
-  
+
   ///////////////////////
   // PRODUCTION CYCLES //
   ///////////////////////
@@ -248,8 +254,10 @@ int main(void)
     for(size_t i = 0; i < NumberOfSimulations; i++)
     {
       if(i > 0 && RunSingleSim) continue;
-      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure, Sims[i].Box.Temperature);
-      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfProductionCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Energy[i].InitialVDWReal, PRODUCTION, SetMaxStep, MaxStepPerCycle, Constants);
+      printf("Running Simulation Boxes in SERIAL, currently [%zu] box; pres: %.5f, temp: %.5f\n", i, Sims[i].Box.Pressure,  SystemComponents[i].Temperature)
+;
+      Energy[i].running_energy += Run_Simulation_ForOneBox(NumberOfProductionCycles, SystemComponents[i], Sims[i], device_FF, Random, WidomArray[i], Energy[
+i].InitialVDW, PRODUCTION, SetMaxStep, MaxStepPerCycle, Constants);
     }
   }
   double end = omp_get_wtime();
