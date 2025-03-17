@@ -469,7 +469,7 @@ double GPU_EwaldDifference_General(Boxsize &Box, Atoms *&d_a, Atoms &New,
   sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
       sycl::range<1>(Nthread * sizeof(double)), cgh);
 
-  q_ct1.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, Nblock * 2) *
+  cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, Nblock * 2) *
                                            sycl::range<3>(1, 1, Nthread),
                                        sycl::range<3>(1, 1, Nthread)),
                      [=](sycl::nd_item<3> item_ct1) {
