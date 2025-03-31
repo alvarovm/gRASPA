@@ -1,6 +1,6 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
-#include <complex>
+//#include <complex>
+#include <filesystem>
+#include <fstream>
 #include "VDW_Coulomb.dp.hpp"
 #include "maths.dp.hpp"
 #include "Ewald_Energy_Functions.h"
@@ -26,8 +26,7 @@ void Setup_threadblock(size_t arraysize, size_t *Nblock, size_t *Nthread)
 
 void VDWReal_Total_CPU(Boxsize Box, Atoms* Host_System, Atoms* System, ForceField FF, Components SystemComponents, MoveEnergy& E)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
   printf("****** Calculating VDW + Real Energy (CPU) ******\n");
   ///////////////////////////////////////////////////////
   //All variables passed here should be device pointers//
@@ -50,12 +49,13 @@ void VDWReal_Total_CPU(Boxsize Box, Atoms* Host_System, Atoms* System, ForceFiel
   
     //if(Host_System[ijk].Allocate_size = System[ijk].Allocate_size) //means there is no more space allocated on the device than host, otherwise, allocate more on host
     //{
-      q_ct1.memcpy(Host_System[ijk].pos,    System[ijk].pos, sizeof(double3) * System[ijk].Allocate_size).wait();
-      q_ct1.memcpy(Host_System[ijk].scale,  System[ijk].scale, sizeof(double) * System[ijk].Allocate_size).wait();
-      q_ct1.memcpy(Host_System[ijk].charge, System[ijk].charge, sizeof(double) * System[ijk].Allocate_size).wait();
-      q_ct1.memcpy(Host_System[ijk].scaleCoul, System[ijk].scaleCoul, sizeof(double) * System[ijk].Allocate_size).wait();
-      q_ct1.memcpy(Host_System[ijk].Type,  System[ijk].Type, sizeof(size_t) * System[ijk].Allocate_size).wait();
-      q_ct1.memcpy(Host_System[ijk].MolID, System[ijk].MolID, sizeof(size_t) * System[ijk].Allocate_size).wait();
+      que.memcpy(Host_System[ijk].pos,    System[ijk].pos, sizeof(double3) * System[ijk].Allocate_size);
+      que.memcpy(Host_System[ijk].scale,  System[ijk].scale, sizeof(double) * System[ijk].Allocate_size);
+      que.memcpy(Host_System[ijk].charge, System[ijk].charge, sizeof(double) * System[ijk].Allocate_size);
+      que.memcpy(Host_System[ijk].scaleCoul, System[ijk].scaleCoul, sizeof(double) * System[ijk].Allocate_size);
+      que.memcpy(Host_System[ijk].Type,  System[ijk].Type, sizeof(size_t) * System[ijk].Allocate_size);
+      que.memcpy(Host_System[ijk].MolID, System[ijk].MolID, sizeof(size_t) * System[ijk].Allocate_size);
+      que.wait();
       Host_System[ijk].size = System[ijk].size;
       //printf("CPU CHECK: comp: %zu, Host Allocate_size: %zu, Allocate_size: %zu\n", ijk, Host_System[ijk].Allocate_size, System[ijk].Allocate_size);
     //}
@@ -284,15 +284,15 @@ void one_thread_GPU_test(Boxsize Box, Atoms* System, ForceField FF, double* xxx)
   //printf("xxx: %.10f\n", Total_energy);
 }
 
-void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<3> &item_ct1, uint8_t *dpct_local)
+void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<1> &item, uint8_t *dpct_local)
 {
   ///////////////////////////////////////////////////////
   //All variables passed here should be device pointers//
   ///////////////////////////////////////////////////////
   auto sdata = (double *)dpct_local;
-  size_t blockIdx  = item_ct1.get_group(2);
-  size_t blockDim  = item_ct1.get_local_range(2);
-  size_t threadIdx = item_ct1.get_local_id(2);
+  size_t blockIdx  = item.get_group(0);
+  size_t blockDim  = item.get_local_range(0);
+  size_t threadIdx = item.get_local_id(0);
   int cache_id = threadIdx;
   size_t total_ij = blockIdx * blockDim + threadIdx;
 
@@ -431,7 +431,7 @@ void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms*
   sdata[ij_within_block] = tempy.x(); //sdata[ij_within_block].y = tempdU;
   sdata[ij_within_block + blockDim] = tempy.y();
   }
-  item_ct1.barrier(sycl::access::fence_space::local_space);
+  item.barrier(sycl::access::fence_space::local_space);
   //Partial block sum//
   if(!Blockflag)
   {
@@ -443,7 +443,7 @@ void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms*
         sdata[cache_id] += sdata[cache_id + i]; 
         sdata[cache_id + blockDim] += sdata[cache_id + i + blockDim];
       }
-      item_ct1.barrier();
+      item.barrier();
       i /= 2;
     }
     if(cache_id == 0)
@@ -454,7 +454,7 @@ void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms*
   }
 }
 
-void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms NewMol, ForceField FF, double* Blocksum, size_t ComponentID, size_t totalAtoms, bool* flag, size_t totalthreads, size_t chainsize, size_t NblockForTrial, size_t HG_Nblock, int3 NComps, int2* ExcludeList, const sycl::nd_item<3> &item_ct1, uint8_t *dpct_local)
+void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms NewMol, ForceField FF, double* Blocksum, size_t ComponentID, size_t totalAtoms, bool* flag, size_t totalthreads, size_t chainsize, size_t NblockForTrial, size_t HG_Nblock, int3 NComps, int2* ExcludeList, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> sdata)
 {
   //Dividing Nblocks into Nblocks for host-guest and for guest-guest//
   //NblockForTrial = HG_Nblock + GG_Nblock;
@@ -464,10 +464,10 @@ void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Ato
   ///////////////////////////////////////////////////////
   //All variables passed here should be device pointers//
   ///////////////////////////////////////////////////////
-  auto sdata = (double *)dpct_local;
-  const size_t blockIdx  = item_ct1.get_group(2);
-  const size_t blockDim  = item_ct1.get_local_range(2);
-  const size_t threadIdx = item_ct1.get_local_id(2);
+  //auto sdata = (double *)dpct_local;
+  const size_t blockIdx  = item.get_group(0);
+  const size_t blockDim  = item.get_local_range(0);
+  const size_t threadIdx = item.get_local_id(0);
 
   int cache_id = threadIdx;
   size_t trial = blockIdx/NblockForTrial;
@@ -603,7 +603,7 @@ void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Ato
     sdata[threadIdx] = tempy.x(); sdata[threadIdx + blockDim] = tempy.y();
   }
   }
-   item_ct1.barrier(sycl::access::fence_space::local_space);
+   item.barrier(sycl::access::fence_space::local_space);
   //Partial block sum//
   if(!flag[trial])
   {
@@ -615,7 +615,7 @@ void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Ato
         sdata[cache_id] += sdata[cache_id + i];
         sdata[cache_id + blockDim] += sdata[cache_id + i + blockDim];
       }
-      item_ct1.barrier();
+      item.barrier();
       i /= 2;
     }
     if(cache_id == 0) 
@@ -820,7 +820,7 @@ MoveEnergy Total_VDW_Coulomb_Energy(Simulations& Sim, ForceField FF, size_t totM
   //Zhao's note: consider using the flag to check for overlap here//
   //printf("Total Thread: %zu, Nblock: %zu, Nthread: %zu\n", Host_threads + Guest_threads, Nblock, Nthread);
   //double BlockE[Nblock]; 
-  //q_ct1.memcpy(BlockE, Sim.Blocksum, sizeof(double) * Nblock).wait();
+  //que.memcpy(BlockE, Sim.Blocksum, sizeof(double) * Nblock).wait();
   //for(size_t id = 0; id < Nblock; id++) E.GGVDW += BlockE[id];
   return E;
 }

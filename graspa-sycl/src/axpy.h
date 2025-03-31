@@ -1,5 +1,5 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
 #include <complex>
 #include "VDW_Coulomb.dp.hpp"
 //#include "RN.h"

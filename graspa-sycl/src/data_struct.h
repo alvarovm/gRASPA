@@ -1,5 +1,6 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
+#include "sycl_device.hpp"
 #include <stdio.h>
 #include <vector>
 #include <string>
@@ -550,33 +551,27 @@ struct Components
   Atoms   TempSystem;                                 //For temporary data storage//
   void Copy_GPU_Data_To_Temp(Atoms GPU_System, size_t start, size_t size)
   {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
-    /*
-    DPCT1083:26: The size of double3 in the migrated code may be different from
-    the original code. Check that the allocated memory size in the migrated code
-    is correct.
-    */
-    q_ct1
+    sycl::queue &que = *sycl_get_queue();
+    que
         .memcpy(TempSystem.pos, &GPU_System.pos[start],
                 size * sizeof(double3))
         .wait();
-    q_ct1
+    que
         .memcpy(TempSystem.scale, &GPU_System.scale[start],
                 size * sizeof(double))
         .wait();
-    q_ct1
+    que
         .memcpy(TempSystem.charge, &GPU_System.charge[start],
                 size * sizeof(double))
         .wait();
-    q_ct1
+    que
         .memcpy(TempSystem.scaleCoul, &GPU_System.scaleCoul[start],
                 size * sizeof(double))
         .wait();
-    q_ct1
+    que
         .memcpy(TempSystem.Type, &GPU_System.Type[start], size * sizeof(size_t))
         .wait();
-    q_ct1
+    que
         .memcpy(TempSystem.MolID, &GPU_System.MolID[start],
                 size * sizeof(size_t))
         .wait();
@@ -769,13 +764,7 @@ struct RandomNumber
 
     for(size_t i = randomsize * 3; i < 1000000; i++) Get_Uniform_Random();
 
-    /*
-    DPCT1083:27: The size of double3 in the migrated code may be different from
-    the original code. Check that the allocated memory size in the migrated code
-    is correct.
-    */
-    dpct::get_default_queue()
-        .memcpy(device_random, host_random, randomsize * sizeof(double3))
+    sycl_get_queue()->memcpy(device_random, host_random, randomsize * sizeof(double3))
         .wait();
     Rounds ++;
   }

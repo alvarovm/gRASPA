@@ -1,5 +1,5 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
 #include "mc_utilities.h"
 #include <cmath>
 
@@ -39,8 +39,7 @@ void get_position(const Atoms* System, size_t *posi, size_t *comp, size_t i, siz
 ////////////////////////////////////////////////
 static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulations& Sims, WidomStruct& Widom, ForceField& FF, RandomNumber& Random, size_t SelectedMolInComponent, size_t SelectedComponent, int MoveType)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
   //Get Number of Molecules for this component (For updating TMMC)//
   double NMol = SystemComponents.NumberOfMolecule_for_Component[SelectedComponent];
   if(SystemComponents.hasfractionalMolecule[SelectedComponent]) NMol--;
@@ -109,13 +108,12 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
   pointer(s), which cannot be dereferenced. Try to migrate the code with
   "usm-level=restricted".
   */
-  q_ct1.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, Molsize),
-                                       sycl::range<3>(1, 1, Molsize)),
-                     [=](sycl::nd_item<3> item_ct1) {
-                       get_new_position(Sims, FF, start_position,
-                                        SelectedComponent, Random.device_random, Max,
-                                        Random.offset, MoveType, item_ct1);
-                     }).wait();
+  que.parallel_for(sycl::nd_range<1>(Molsize, Molsize),
+                   [=](sycl::nd_item<1> item) {
+                     get_new_position(Sims, FF, start_position,
+                                      SelectedComponent, Random.device_random, Max,
+                                      Random.offset, MoveType, item);
+                   }).wait();
   Random.Update(Molsize);
 
   // Setup for the pairwise calculation //
@@ -145,42 +143,42 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
   */
 
   int3 NComp = SystemComponents.NComponents; 
-//  q_ct1.submit([&](sycl::handler &cgh) {
-//  sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1( sycl::range<1>(2 * HGGG_Nthread * sizeof(double)), cgh);
+//  que.submit([&](sycl::handler &cgh) {
+//  sycl::local_accessor<uint8_t, 1> local_mem( sycl::range<1>(2 * HGGG_Nthread * sizeof(double)), cgh);
 //
 //  cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, HGGG_Nblock) *
 //                                           sycl::range<3>(1, 1, HGGG_Nthread),
 //                                       sycl::range<3>(1, 1, HGGG_Nthread)),
-//                     [=](sycl::nd_item<3> item_ct1) {
+//                     [=](sycl::nd_item<3> item) {
 //                       Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Sims.Box, Sims.d_a, Sims.Old, 
 //				                                               Sims.New, FF, Sims.Blocksum, SelectedComponent, Atomsize, 
-//						                                Molsize, Sims.device_flag, HG_Nblock, GG_Nblock, Do_New, Do_Old, NComp, item_ct1, dpct_local_acc_ct1.get_pointer());
+//						                                Molsize, Sims.device_flag, HG_Nblock, GG_Nblock, Do_New, Do_Old, NComp, item, local_mem.get_pointer());
 //                     });
 //  }).wait();
 
 
-  q_ct1.submit([&](sycl::handler &cgh) {
-    sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(sycl::range<1>(2 * HGGG_Nthread), cgh);
+  que.submit([&](sycl::handler &cgh) {
+    sycl::local_accessor<uint8_t, 1> local_mem(sycl::range<1>(2 * HGGG_Nthread), cgh);
 
-    cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, HGGG_Nblock) * sycl::range<3>(1, 1, HGGG_Nthread),
-        sycl::range<3>(1, 1, HGGG_Nthread)),
-        [=](sycl::nd_item<3> item_ct1) {
+    cgh.parallel_for(sycl::nd_range<1>(HGGG_Nblock * HGGG_Nthread,
+                                       HGGG_Nthread),
+        [=](sycl::nd_item<1> item) {
             Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(
                 Sims.Box, Sims.d_a, Sims.Old, Sims.New, FF, Sims.Blocksum,
                 SelectedComponent, Atomsize, Molsize, Sims.device_flag,
                 HG_Nblock, GG_Nblock, Do_New, Do_Old, NComp,
-                item_ct1, dpct_local_acc_ct1.get_pointer());
+                item, local_mem.get_multi_ptr<sycl::access::decorated::no>().get());
         });
     }).wait();
 
 
-  q_ct1.memcpy(Sims.flag, Sims.device_flag, sizeof(bool)).wait();
+  que.memcpy(Sims.flag, Sims.device_flag, sizeof(bool)).wait();
 
   MoveEnergy tot; bool Accept = false; double Pacc = 0.0;
   if(!Sims.flag[0])
   {
     double HGGG_BlockResult[HGGG_Nblock + HGGG_Nblock];
-    q_ct1
+    que
         .memcpy(HGGG_BlockResult, Sims.Blocksum,
                 2 * HGGG_Nblock * sizeof(double))
         .wait();
@@ -230,17 +228,10 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
     {
       if(Accept)
       {
-        /*
-        DPCT1049:2: The work-group size passed to the SYCL kernel may exceed the
-        limit. To get the device limit, query info::device::max_work_group_size.
-        Adjust the work-group size if needed.
-        */
-      q_ct1.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, Molsize),
-                                           sycl::range<3>(1, 1, Molsize)),
-                         [=](sycl::nd_item<3> item_ct1) {
-                           update_translation_position(
-                               Sims.d_a, Sims.New, start_position,
-                               SelectedComponent, item_ct1);
+        que.parallel_for(sycl::nd_range<1>(Molsize, Molsize),
+                         [=](sycl::nd_item<1> item) {
+                           update_translation_position(Sims.d_a, Sims.New, start_position,
+                                                       SelectedComponent, item);
                          }).wait();
         SystemComponents.Moves[SelectedComponent].TranslationAccepted ++;
         if(!FF.noCharges && SystemComponents.hasPartialCharge[SelectedComponent])
@@ -256,17 +247,11 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
     {
       if(Accept)
       {
-        /*
-        DPCT1049:3: The work-group size passed to the SYCL kernel may exceed the
-        limit. To get the device limit, query info::device::max_work_group_size.
-        Adjust the work-group size if needed.
-        */
-      q_ct1.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, Molsize),
-                                           sycl::range<3>(1, 1, Molsize)),
-                         [=](sycl::nd_item<3> item_ct1) {
+        que.parallel_for(sycl::nd_range<1>(Molsize, Molsize),
+                         [=](sycl::nd_item<1> item) {
                            update_translation_position(
                                Sims.d_a, Sims.New, start_position,
-                               SelectedComponent, item_ct1);
+                               SelectedComponent, item);
                          }).wait();
         SystemComponents.Moves[SelectedComponent].RotationAccepted ++;
         if(!FF.noCharges && SystemComponents.hasPartialCharge[SelectedComponent])

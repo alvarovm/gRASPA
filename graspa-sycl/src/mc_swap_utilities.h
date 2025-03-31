@@ -1,3 +1,4 @@
+#pragma once
 #include <cmath>
 static inline MoveEnergy
 Insertion_Body(Components &SystemComponents, Simulations &Sims, ForceField &FF,

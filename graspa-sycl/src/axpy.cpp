@@ -1,7 +1,6 @@
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#include "sycl_device.hpp"
 #include "axpy.h"
 #include "mc_single_particle.h"
 #include "mc_swap_moves.h"

@@ -1,5 +1,7 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
+#include "sycl_device.hpp"
+#include <omp.h>
 #include <complex>
 #include <vector>
 //#define M_PI           3.14159265358979323846e0
@@ -15,17 +17,17 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
   double alpha = Box.Alpha; double alpha_squared = alpha * alpha;
   double prefactor = Box.Prefactor * (2.0 * M_PI / Box.Volume);
 
-  double3 ax = {
+  sycl::double3 ax = {
       Box.InverseCell[0], Box.InverseCell[3],
       Box.InverseCell[6]}; // printf("ax: %.10f, %.10f, %.10f\n",
                            // Box.InverseCell[0], Box.InverseCell[3],
                            // Box.InverseCell[6]);
-  double3 ay = {
+  sycl::double3 ay = {
       Box.InverseCell[1], Box.InverseCell[4],
       Box.InverseCell[7]}; // printf("ay: %.10f, %.10f, %.10f\n",
                            // Box.InverseCell[1], Box.InverseCell[4],
                            // Box.InverseCell[7]);
-  double3 az = {
+  sycl::double3 az = {
       Box.InverseCell[2], Box.InverseCell[5],
       Box.InverseCell[8]}; // printf("az: %.10f, %.10f, %.10f\n",
                            // Box.InverseCell[2], Box.InverseCell[5],
@@ -57,11 +59,11 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
     for(size_t posi=0; posi < SystemComponents.NumberOfMolecule_for_Component[comp] * SystemComponents.Moleculesize[comp]; posi++)
     {
       //determine the component for i
-      double3 pos = Host_System[comp].pos[posi];
+      sycl::double3 pos = Host_System[comp].pos[posi];
       eik_x[count + 0 * numberOfAtoms] = std::complex<double>(1.0, 0.0);
       eik_y[count + 0 * numberOfAtoms] = std::complex<double>(1.0, 0.0);
       eik_z[count + 0 * numberOfAtoms] = std::complex<double>(1.0, 0.0);
-      double3 s; matrix_multiply_by_vector(Box.InverseCell, pos, s);
+      sycl::double3 s; matrix_multiply_by_vector(Box.InverseCell, pos, s);
       s*=2 * M_PI;
       eik_x[count + 1 * numberOfAtoms] = std::complex<double>(std::cos(s.x()), std::sin(s.x()));
       eik_y[count + 1 * numberOfAtoms] = std::complex<double>(std::cos(s.y()), std::sin(s.y()));
@@ -97,13 +99,13 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
   size_t kxcount = 0; size_t kycount = 0; size_t kzcount = 0; size_t kzinactive = 0;
   for(std::make_signed_t<std::size_t> kx = 0; kx <= kx_max; ++kx)
   {
-    double3 kvec_x = ax * 2.0 * M_PI * static_cast<double>(kx);
+    sycl::double3 kvec_x = ax * 2.0 * M_PI * static_cast<double>(kx);
     // Only positive kx are used, the negative kx are taken into account by the factor of two
     double factor = (kx == 0) ? (1.0 * prefactor) : (2.0 * prefactor);
     
     for(std::make_signed_t<std::size_t> ky = -ky_max; ky <= ky_max; ++ky)
     {
-      double3 kvec_y = ay * 2.0 * M_PI * static_cast<double>(ky);
+      sycl::double3 kvec_y = ay * 2.0 * M_PI * static_cast<double>(ky);
       // Precompute and store eik_x * eik_y outside the kz-loop
       for(size_t i = 0; i != numberOfAtoms; ++i)
       {
@@ -120,7 +122,7 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
         std::complex<double> Frameworkck(0.0, 0.0);
         if((ksqr != 0) && (static_cast<double>(ksqr) < recip_cutoff))
         {
-          double3 kvec_z = az * 2.0 * M_PI * static_cast<double>(kz);
+          sycl::double3 kvec_z = az * 2.0 * M_PI * static_cast<double>(kz);
           //std::complex<double> cksum(0.0, 0.0);
           count=0;
           for(size_t comp=0; comp<SystemComponents.Total_Components; comp++)
@@ -136,7 +138,7 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
               count++;
             }
           }
-          double3 tempkvec = kvec_x + kvec_y + kvec_z;
+          sycl::double3 tempkvec = kvec_x + kvec_y + kvec_z;
           double  rksq = dot(tempkvec, tempkvec);
           double  temp = factor * std::exp((-0.25 / alpha_squared) * rksq) / rksq;
           if(SystemComponents.NumberOfFrameworks > 0 && Box.ExcludeHostGuestEwald)
@@ -203,13 +205,13 @@ void Ewald_Total(Boxsize& Box, Atoms*& Host_System, ForceField& FF, Components& 
         for(size_t i = AtomID; i != AtomID + SystemComponents.Moleculesize[l] - 1; i++)
         {
           double  factorA = Host_System[l].scaleCoul[i] * Host_System[l].charge[i];
-          double3 posA = Host_System[l].pos[i];
+          sycl::double3 posA = Host_System[l].pos[i];
           for(size_t j = i + 1; j != AtomID + SystemComponents.Moleculesize[l]; j++)
           {
             double  factorB = Host_System[l].scaleCoul[j] * Host_System[l].charge[j];
-            double3 posB = Host_System[l].pos[j];
+            sycl::double3 posB = Host_System[l].pos[j];
 
-            double3 posvec = posA - posB;
+            sycl::double3 posvec = posA - posB;
             PBC(posvec, Box.Cell, Box.InverseCell, Box.Cubic);
             double rr_dot = dot(posvec, posvec);
             double r = std::sqrt(rr_dot);
@@ -266,13 +268,13 @@ double Calculate_Intra_Molecule_Exclusion(Boxsize& Box, Atoms* System, double al
   for(size_t i = 0; i != SystemComponents.Moleculesize[SelectedComponent] - 1; i++)
   {
     double  factorA = System[SelectedComponent].scaleCoul[i] * System[SelectedComponent].charge[i];
-    double3 posA = System[SelectedComponent].pos[i];
+    sycl::double3 posA = System[SelectedComponent].pos[i];
     for(size_t j = i + 1; j != SystemComponents.Moleculesize[SelectedComponent]; j++)
     {
       double  factorB = System[SelectedComponent].scaleCoul[j] * System[SelectedComponent].charge[j];
-      double3 posB = System[SelectedComponent].pos[j];
+      sycl::double3 posB = System[SelectedComponent].pos[j];
 
-      double3 posvec = posA - posB;
+      sycl::double3 posvec = posA - posB;
       PBC(posvec, Box.Cell, Box.InverseCell, Box.Cubic);
       double rr_dot = dot(posvec, posvec);
       double r = std::sqrt(rr_dot);
@@ -304,8 +306,7 @@ void Check_WaveVector_CPUGPU(Boxsize& Box, Components& SystemComponents)
   size_t numberOfWaveVectors =
       (Box.kmax.x() + 1) * (2 * Box.kmax.y() + 1) * (2 * Box.kmax.z() + 1);
   Complex GPUWV[numberOfWaveVectors];
-  dpct::get_default_queue()
-      .memcpy(GPUWV, Box.storedEik, numberOfWaveVectors * sizeof(Complex))
+  sycl_get_queue()->memcpy(GPUWV, Box.storedEik, numberOfWaveVectors * sizeof(Complex))
       .wait();
   size_t numWVCPU            = SystemComponents.storedEik.size();
   if(numberOfWaveVectors != numWVCPU) printf("ERROR: Number of CPU WaveVectors does NOT EQUAL to the GPU one!!!");

@@ -1,5 +1,6 @@
-#include <sycl/sycl.hpp>
-//#include <dpct/dpct.hpp>
+#pragma once
+
+#include "sycl_device.hpp"
 #include <iostream>
 
 using double3 = sycl::vec<double, 3>;

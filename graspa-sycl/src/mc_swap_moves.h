@@ -1,5 +1,5 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
 #include "mc_widom.h"
 #include "mc_swap_utilities.h"
 #include "lambda.h"
@@ -32,18 +32,16 @@ void StoreNewLocation_Reinsertion(Atoms Mol, Atoms NewMol, double3 *temp,
 
 void Update_Reinsertion_data(Atoms *d_a, double3 *temp,
                              size_t SelectedComponent, size_t UpdateLocation,
-                             const sycl::nd_item<3> &item_ct1)
+                             const sycl::nd_item<1> &item)
 {
-  size_t i = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
-             item_ct1.get_local_id(2);
+  size_t i = item.get_global_id(0);
   size_t realLocation = UpdateLocation + i;
   d_a[SelectedComponent].pos[realLocation] = temp[i];
 }
 
 static inline MoveEnergy Reinsertion(Components& SystemComponents, Simulations& Sims, ForceField& FF, RandomNumber& Random, WidomStruct& Widom, size_t SelectedMolInComponent, size_t SelectedComponent)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
   //Get Number of Molecules for this component (For updating TMMC)//
   double NMol = SystemComponents.NumberOfMolecule_for_Component[SelectedComponent];
   if(SystemComponents.hasfractionalMolecule[SelectedComponent]) NMol--;
@@ -101,9 +99,9 @@ static inline MoveEnergy Reinsertion(Components& SystemComponents, Simulations& 
 
   //Store The New Locations//
   auto SystemComponents_Moleculesize_SelectedComponent_ct4 = SystemComponents.Moleculesize[SelectedComponent];
-  q_ct1.parallel_for(
+  que.parallel_for(
       sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-      [=](sycl::nd_item<3> item_ct1) {
+      [=](sycl::nd_item<3> item) {
         StoreNewLocation_Reinsertion(
             Sims.Old, Sims.New, Sims.temp, SelectedTrial,
             SystemComponents_Moleculesize_SelectedComponent_ct4);
@@ -168,13 +166,13 @@ static inline MoveEnergy Reinsertion(Components& SystemComponents, Simulations& 
     limit. To get the device limit, query info::device::max_work_group_size.
     Adjust the work-group size if needed.
     */
-    q_ct1.parallel_for(
-        sycl::nd_range<3>(sycl::range<3>(1, 1, SystemComponents.Moleculesize[SelectedComponent]), sycl::range<3>(1, 1, SystemComponents.Moleculesize[SelectedComponent])),
-        [=](sycl::nd_item<3> item_ct1) {
-          Update_Reinsertion_data(Sims.d_a, Sims.temp, SelectedComponent,
-                                  UpdateLocation, item_ct1);
-        });
-        checkCUDAError("error Updating Reinsertion data");
+    que.parallel_for(
+                     sycl::nd_range<1>(SystemComponents.Moleculesize[SelectedComponent], SystemComponents.Moleculesize[SelectedComponent]),
+                     [=](sycl::nd_item<1> item) {
+                       Update_Reinsertion_data(Sims.d_a, Sims.temp, SelectedComponent,
+                                               UpdateLocation, item);
+                     });
+    checkCUDAError("error Updating Reinsertion data");
 
     if(!FF.noCharges && SystemComponents.hasPartialCharge[SelectedComponent]) 
       Update_Ewald_Vector(Sims.Box, false, SystemComponents);
@@ -218,14 +216,12 @@ CreateMolecule(Components &SystemComponents, Simulations &Sims, ForceField &FF,
     auto SystemComponents_Moleculesize_SelectedComponent_ct6 =
         (int)SystemComponents.Moleculesize[SelectedComponent];
 
-    dpct::get_default_queue().parallel_for(
-          sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-          [=](sycl::nd_item<3> item_ct1) {
-            Update_insertion_data(
-                Sims.d_a, Sims.Old, Sims.New, SelectedTrial, SelectedComponent,
-                UpdateLocation,
-                SystemComponents_Moleculesize_SelectedComponent_ct6, item_ct1);
-          });
+    sycl_get_queue()->parallel_for(sycl::nd_range<1>(1,1), [=](sycl::nd_item<1> item) {
+        Update_insertion_data(
+                              Sims.d_a, Sims.Old, Sims.New, SelectedTrial, SelectedComponent,
+                              UpdateLocation,
+                              SystemComponents_Moleculesize_SelectedComponent_ct6, item);
+      });
 
     if(!FF.noCharges && SystemComponents.hasPartialCharge[SelectedComponent])
     {
@@ -482,8 +478,7 @@ void Update_IdentitySwap_Insertion_data(Atoms* d_a, double3* temp, size_t NEWCom
 
 static inline MoveEnergy IdentitySwapMove(Components& SystemComponents, Simulations& Sims, WidomStruct& Widom, ForceField& FF, RandomNumber& Random, size_t OLDMolInComponent, size_t OLDComponent)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
 
   //Identity Swap is sort-of Reinsertion//
   //The difference is that the component of the molecule are different//
@@ -517,9 +512,9 @@ static inline MoveEnergy IdentitySwapMove(Components& SystemComponents, Simulati
   int CBMCType = IDENTITY_SWAP_NEW; //Reinsertion-Insertion//
   //Take care of the frist bead location HERE//
   size_t OLD_LOCATION  = OLDMolInComponent * SystemComponents.Moleculesize[OLDComponent];
-  q_ct1.parallel_for(
+  que.parallel_for(
         sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-        [=](sycl::nd_item<3> item_ct1) {
+        [=](sycl::nd_item<3> item) {
           copy_firstbead_to_new(Sims.New, Sims.d_a, OLDComponent, OLD_LOCATION);
   });
   //WRITE THE component and molecule ID THAT IS GOING TO BE IGNORED DURING THE ENERGY CALC//
@@ -555,9 +550,9 @@ static inline MoveEnergy IdentitySwapMove(Components& SystemComponents, Simulati
   // Store The New Locations //
 
   size_t NEWCOMP_MOLSIZE = SystemComponents.Moleculesize[NEWComponent];
-  q_ct1.parallel_for(
+  que.parallel_for(
       sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-      [=](sycl::nd_item<3> item_ct1) {
+      [=](sycl::nd_item<3> item) {
         StoreNewLocation_Reinsertion(Sims.Old, Sims.New, Sims.temp, SelectedTrial, NEWCOMP_MOLSIZE);
   });
 
@@ -622,13 +617,11 @@ static inline MoveEnergy IdentitySwapMove(Components& SystemComponents, Simulati
     size_t LastLocation = LastMolecule*SystemComponents.Moleculesize[OLDComponent];
 
     int OldComponentMolsize = (int)SystemComponents.Moleculesize[OLDComponent];
-    q_ct1.parallel_for(
-        sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-        [=](sycl::nd_item<3> item_ct1) {
-          Update_deletion_data(Sims.d_a, OLDComponent, UpdateLocation,
-              OldComponentMolsize, LastLocation,
-              item_ct1);
-        });
+    que.parallel_for(sycl::nd_range<1>(1,1), [=](sycl::nd_item<1> item) {
+        Update_deletion_data(Sims.d_a, OLDComponent, UpdateLocation,
+                             OldComponentMolsize, LastLocation,
+                             item);
+      });
    
     //The function below will only be processed if the system has a fractional molecule and the transfered molecule is NOT the fractional one //
     if((SystemComponents.hasfractionalMolecule[OLDComponent])&&(LastMolecule == SystemComponents.Lambda[OLDComponent].FractionalMoleculeID))
@@ -640,11 +633,9 @@ static inline MoveEnergy IdentitySwapMove(Components& SystemComponents, Simulati
     UpdateLocation = SystemComponents.Moleculesize[NEWComponent] * NEWMolInComponent;
 
     size_t NewComponentMolsize = SystemComponents.Moleculesize[NEWComponent];
-    q_ct1.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, 1),
-                                       sycl::range<3>(1, 1, 1)),
-                     [=](sycl::nd_item<3> item_ct1) {
-                       Update_IdentitySwap_Insertion_data(Sims.d_a, Sims.temp, NEWComponent, UpdateLocation, NEWMolInComponent, NewComponentMolsize);
-                     });
+    que.single_task([=](){
+        Update_IdentitySwap_Insertion_data(Sims.d_a, Sims.temp, NEWComponent, UpdateLocation, NEWMolInComponent, NewComponentMolsize);
+      });
 
     Update_NumberOfMolecules(SystemComponents, Sims.d_a, NEWComponent, INSERTION);
     Update_NumberOfMolecules(SystemComponents, Sims.d_a, OLDComponent, DELETION);

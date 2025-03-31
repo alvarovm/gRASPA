@@ -1,5 +1,7 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#pragma once
+
+#include "sycl_device.hpp"
+
 ////////////////////////////////////////////////////////////
 // FUNCATIONS RELATED TO ALLOCATING MORE SPACE ON THE GPU //
 ////////////////////////////////////////////////////////////
@@ -46,8 +48,7 @@ void AllocateMoreSpace_CopyBack(Atoms* d_a, Atoms temp, size_t Space, size_t New
 
 void AllocateMoreSpace(Atoms*& d_a, size_t SelectedComponent, Components& SystemComponents)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
   printf("Allocating more space on device\n");
   Atoms temp; // allocate a struct on the device for copying data.
   //Atoms tempSystem[SystemComponents.Total_Components];
@@ -56,83 +57,79 @@ void AllocateMoreSpace(Atoms*& d_a, size_t SelectedComponent, Components& System
   size_t Newspace = Copysize+Morespace;
   //Allocate space on the temporary struct
   /*
-  DPCT1083:38: The size of double3 in the migrated code may be different from
+  DPCT1083:38: The size of sycl::double3 in the migrated code may be different from
   the original code. Check that the allocated memory size in the migrated code
   is correct.
   */
   (temp.pos) = (typename std::remove_reference<decltype(temp.pos)>::type)
-      sycl::malloc_device(Copysize * sizeof(double3), q_ct1);
+      sycl::malloc_device(Copysize * sizeof(sycl::double3), que);
   (temp.scale) = (typename std::remove_reference<decltype(temp.scale)>::type)
-      sycl::malloc_device(Copysize * sizeof(double), q_ct1);
+      sycl::malloc_device(Copysize * sizeof(double), que);
   (temp.charge) = (typename std::remove_reference<decltype(temp.charge)>::type)
-      sycl::malloc_device(Copysize * sizeof(double), q_ct1);
+      sycl::malloc_device(Copysize * sizeof(double), que);
   (temp.scaleCoul) =
       (typename std::remove_reference<decltype(temp.scaleCoul)>::type)
-          sycl::malloc_device(Copysize * sizeof(double), q_ct1);
+          sycl::malloc_device(Copysize * sizeof(double), que);
   (temp.Type) = (typename std::remove_reference<decltype(temp.Type)>::type)
-      sycl::malloc_device(Copysize * sizeof(size_t), q_ct1);
+      sycl::malloc_device(Copysize * sizeof(size_t), que);
   (temp.MolID) = (typename std::remove_reference<decltype(temp.MolID)>::type)
-      sycl::malloc_device(Copysize * sizeof(size_t), q_ct1);
+      sycl::malloc_device(Copysize * sizeof(size_t), que);
   // Copy data to temp
   /*
   DPCT1069:65: The argument 'temp' of the kernel function contains virtual
   pointer(s), which cannot be dereferenced. Try to migrate the code with
   "usm-level=restricted".
   */
-  q_ct1.parallel_for(
-      sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-      [=](sycl::nd_item<3> item_ct1) {
-        AllocateMoreSpace_CopyToTemp(d_a, temp, Copysize, SelectedComponent);
-      });
+  que.single_task([=](){
+      AllocateMoreSpace_CopyToTemp(d_a, temp, Copysize, SelectedComponent);
+    });
   // Allocate more space on the device pointers
 
   Atoms System[SystemComponents.Total_Components];
-      q_ct1
+      que
           .memcpy(System, d_a,
                   SystemComponents.Total_Components * sizeof(Atoms))
           .wait();
 
   /*
-  DPCT1083:39: The size of double3 in the migrated code may be different from
+  DPCT1083:39: The size of sycl::double3 in the migrated code may be different from
   the original code. Check that the allocated memory size in the migrated code
   is correct.
   */
   (System[SelectedComponent].pos) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].pos)>::type)
-          sycl::malloc_device(Newspace * sizeof(double3), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(sycl::double3), que);
   (System[SelectedComponent].scale) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].scale)>::type)
-          sycl::malloc_device(Newspace * sizeof(double), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(double), que);
   (System[SelectedComponent].charge) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].charge)>::type)
-          sycl::malloc_device(Newspace * sizeof(double), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(double), que);
   (System[SelectedComponent].scaleCoul) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].scaleCoul)>::type)
-          sycl::malloc_device(Newspace * sizeof(double), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(double), que);
   (System[SelectedComponent].Type) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].Type)>::type)
-          sycl::malloc_device(Newspace * sizeof(size_t), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(size_t), que);
   (System[SelectedComponent].MolID) =
       (typename std::remove_reference<
           decltype(System[SelectedComponent].MolID)>::type)
-          sycl::malloc_device(Newspace * sizeof(size_t), q_ct1);
+          sycl::malloc_device(Newspace * sizeof(size_t), que);
   // Copy data from temp back to the new pointers
   /*
   DPCT1069:66: The argument 'temp' of the kernel function contains virtual
   pointer(s), which cannot be dereferenced. Try to migrate the code with
   "usm-level=restricted".
   */
-  q_ct1.parallel_for(
-      sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-      [=](sycl::nd_item<3> item_ct1) {
-        AllocateMoreSpace_CopyBack(d_a, temp, Copysize, Newspace,
-                                   SelectedComponent);
-      });
+  que.single_task([=](){
+      AllocateMoreSpace_CopyBack(d_a, temp, Copysize, Newspace,
+                                 SelectedComponent);
+    });
   //System[SelectedComponent].Allocate_size = Newspace;
 }
 
@@ -190,10 +187,9 @@ void Update_SINGLE_INSERTION_data(Atoms* d_a, Atoms New, size_t SelectedComponen
 }
 
 void Update_deletion_data(Atoms* d_a, size_t SelectedComponent, size_t UpdateLocation, int Moleculesize, size_t LastLocation,
-                          const sycl::nd_item<3> &item_ct1)
+                          const sycl::nd_item<1> &item)
 {
-  size_t i = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
-             item_ct1.get_local_id(2);
+  size_t i = item.get_global_id(0);
 
   //UpdateLocation should be the molecule that needs to be deleted
   //Then move the atom at the last position to the location of the deleted molecule
@@ -220,10 +216,10 @@ void Update_deletion_data(Atoms* d_a, size_t SelectedComponent, size_t UpdateLoc
 }
 
 void Update_insertion_data(Atoms* d_a, Atoms Mol, Atoms NewMol, size_t SelectedTrial, size_t SelectedComponent, size_t UpdateLocation, int Moleculesize,
-                           const sycl::nd_item<3> &item_ct1)
+                           const sycl::nd_item<1> &item)
 {
-  size_t i = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
-             item_ct1.get_local_id(2);
+  size_t i = item.get_global_id(0);
+
   //UpdateLocation should be the last position of the dataset
   //Need to check if Allocate_size is smaller than size
   if(Moleculesize == 1) //Only first bead is inserted, first bead data is stored in NewMol
@@ -271,10 +267,9 @@ void Update_insertion_data(Atoms* d_a, Atoms Mol, Atoms NewMol, size_t SelectedT
 }
 
 void update_translation_position(Atoms* d_a, Atoms NewMol, size_t start_position, size_t SelectedComponent,
-                                 const sycl::nd_item<3> &item_ct1)
+                                 const sycl::nd_item<1> &item)
 {
-  size_t i = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
-             item_ct1.get_local_id(2);
+  size_t i = item.get_global_id(0);
   d_a[SelectedComponent].pos[start_position+i] = NewMol.pos[i];
   d_a[SelectedComponent].scale[start_position+i] = NewMol.scale[i];
   d_a[SelectedComponent].charge[start_position+i] = NewMol.charge[i];
@@ -329,34 +324,29 @@ static inline double GetPrefactor(Components& SystemComponents, Simulations& Sim
 
 static inline void AcceptInsertion(Components& SystemComponents, Simulations& Sims, size_t SelectedComponent, size_t SelectedTrial, bool noCharges, int MoveType)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
   size_t UpdateLocation = SystemComponents.Moleculesize[SelectedComponent] * SystemComponents.NumberOfMolecule_for_Component[SelectedComponent];
   //printf("AccInsertion, SelectedTrial: %zu, UpdateLocation: %zu\n", SelectedTrial, UpdateLocation);
   //Zhao's note: here needs more consideration: need to update after implementing polyatomic molecule
   if(MoveType == INSERTION)
   {
-    q_ct1.submit([&](sycl::handler &cgh) {
+    que.submit([&](sycl::handler &cgh) {
       auto SystemComponents_Moleculesize_SelectedComponent_ct6 =
           (int)SystemComponents.Moleculesize[SelectedComponent];
 
-      cgh.parallel_for(
-          sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-          [=](sycl::nd_item<3> item_ct1) {
+      cgh.parallel_for(sycl::nd_range<1>(1,1), [=](sycl::nd_item<1> item) {
             Update_insertion_data(
                 Sims.d_a, Sims.Old, Sims.New, SelectedTrial, SelectedComponent,
                 UpdateLocation,
-                SystemComponents_Moleculesize_SelectedComponent_ct6, item_ct1);
-          });
+                SystemComponents_Moleculesize_SelectedComponent_ct6, item);
+        });
     });
   }
   else if(MoveType == SINGLE_INSERTION)
   {
-    q_ct1.parallel_for(
-        sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-        [=](sycl::nd_item<3> item_ct1) {
-          Update_SINGLE_INSERTION_data(Sims.d_a, Sims.New, SelectedComponent);
-        });
+    que.single_task([=](){
+        Update_SINGLE_INSERTION_data(Sims.d_a, Sims.New, SelectedComponent);
+      });
   }
   Update_NumberOfMolecules(SystemComponents, Sims.d_a, SelectedComponent, INSERTION); //true = Insertion//
   if(!noCharges && SystemComponents.hasPartialCharge[SelectedComponent])
@@ -369,20 +359,17 @@ static inline void AcceptDeletion(Components& SystemComponents, Simulations& Sim
 {
   size_t LastMolecule = SystemComponents.NumberOfMolecule_for_Component[SelectedComponent]-1;
   size_t LastLocation = LastMolecule*SystemComponents.Moleculesize[SelectedComponent];
-  dpct::get_default_queue().submit([&](sycl::handler &cgh) {
+  sycl_get_queue()->submit([&](sycl::handler &cgh) {
     auto SystemComponents_Moleculesize_SelectedComponent_ct3 =
         (int)SystemComponents.Moleculesize[SelectedComponent];
 
-    cgh.parallel_for(
-        sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-        [=](sycl::nd_item<3> item_ct1) {
-          Update_deletion_data(
-              Sims.d_a, SelectedComponent, UpdateLocation,
-              SystemComponents_Moleculesize_SelectedComponent_ct3, LastLocation,
-              item_ct1);
-        });
-  });
-
+    cgh.parallel_for(sycl::nd_range<1>(1, 1), [=](sycl::nd_item<1> item) {
+        Update_deletion_data(Sims.d_a, SelectedComponent, UpdateLocation,
+                             SystemComponents_Moleculesize_SelectedComponent_ct3, LastLocation,
+                             item);
+      });
+    });
+  
   Update_NumberOfMolecules(SystemComponents, Sims.d_a, SelectedComponent, DELETION); //false = Deletion//
   if(!noCharges && SystemComponents.hasPartialCharge[SelectedComponent])
   {
@@ -402,7 +389,7 @@ static inline void AcceptDeletion(Components& SystemComponents, Simulations& Sim
 // PREPARING NEW (TRIAL) LOCATIONS/ORIENTATIONS //
 //////////////////////////////////////////////////
 
-void Rotate_Quaternions(double3 &Vec, double3 RANDOM)
+void Rotate_Quaternions(sycl::double3 &Vec, sycl::double3 RANDOM)
 {
   //https://stackoverflow.com/questions/31600717/how-to-generate-a-random-quaternion-quickly
   //https://stackoverflow.com/questions/38978441/creating-uniform-random-quaternion-and-multiplication-of-two-quaternions
@@ -487,15 +474,14 @@ void RotationAroundAxis(Atoms Mol,size_t i,double theta, int Axis)
 }
 
 void get_new_position(Simulations Sim, ForceField FF, size_t start_position,
-                      size_t SelectedComponent, double3 *RANDOM, double3 Max,
+                      size_t SelectedComponent, sycl::double3 *RANDOM, sycl::double3 Max,
                       size_t index, int MoveType,
-                      const sycl::nd_item<3> &item_ct1)
+                      const sycl::nd_item<1> &item)
 {
-  const size_t i = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
-                   item_ct1.get_local_id(2);
+  const size_t i = item.get_global_id(0);
   const size_t real_pos = start_position + i;
 
-  const double3 pos = Sim.d_a[SelectedComponent].pos[real_pos];
+  const sycl::double3 pos = Sim.d_a[SelectedComponent].pos[real_pos];
   const double  scale     = Sim.d_a[SelectedComponent].scale[real_pos];
   const double  charge    = Sim.d_a[SelectedComponent].charge[real_pos];
   const double  scaleCoul = Sim.d_a[SelectedComponent].scaleCoul[real_pos];
@@ -516,7 +502,7 @@ void get_new_position(Simulations Sim, ForceField FF, size_t start_position,
     case ROTATION://ROTATION:
     {
       Sim.New.pos[i] = pos - Sim.d_a[SelectedComponent].pos[start_position];
-      const double3 Angle = Max * 2.0 * (RANDOM[index] - 0.5);
+      const sycl::double3 Angle = Max * 2.0 * (RANDOM[index] - 0.5);
 
       RotationAroundAxis(Sim.New, i, Angle.x(), X);
       RotationAroundAxis(Sim.New, i, Angle.y(), Y);
@@ -533,13 +519,13 @@ void get_new_position(Simulations Sim, ForceField FF, size_t start_position,
     { 
       //First ROTATION using QUATERNIONS//
       //Then TRANSLATION//
-      double3 BoxLength = {Sim.Box.Cell[0], Sim.Box.Cell[4],
+      sycl::double3 BoxLength = {Sim.Box.Cell[0], Sim.Box.Cell[4],
                                  Sim.Box.Cell[8]};
-      double3 NEW_COM   = BoxLength * RANDOM[index];
+      sycl::double3 NEW_COM   = BoxLength * RANDOM[index];
       if(i == 0) Sim.New.pos[0] = NEW_COM;
       if(i > 0)
       {
-        double3 Vec = pos - Sim.d_a[SelectedComponent].pos[start_position];
+        sycl::double3 Vec = pos - Sim.d_a[SelectedComponent].pos[start_position];
         Rotate_Quaternions(Vec, RANDOM[index + 1]);
         Sim.New.pos[i] = Vec + NEW_COM;
       }

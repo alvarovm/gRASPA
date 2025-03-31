@@ -1,3 +1,5 @@
+#pragma once
+
 //Need to consider if we use CBCF//
 
 double TotalTailCorrection(Components& SystemComponents, size_t FFsize, double Volume)

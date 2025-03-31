@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project name
 project(gRASPA CXX)
 
-
+find_package(OpenMP REQUIRED)
 
 set(CMAKE_VERBOSE_MAKEFILE ON) #
 option(USE_SYCL "Using SYCL backend" ON)
 if (USE_SYCL)
 set(CMAKE_CXX_COMPILER "icpx")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O3 -finline -qopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O2 -qopenmp -Xarch_device -fsanitize=memory")
 #else()
 #  project (gpu4pyscf C CXX CUDA Fortran)
 endif()
@@ -23,8 +23,8 @@ add_definitions(-DUSE_SYCL=1)
 endif(USE_SYCL)
 
 # Set the C++ standard
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 # Uncomment the following line if you want to include FPGA_FLAG
