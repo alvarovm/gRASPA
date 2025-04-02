@@ -149,10 +149,10 @@ void get_random_trial_position(Boxsize Box, Atoms* d_a, Atoms NewMol, bool* devi
   NewMol.Type[i] = AllData.Type[start_position];
   NewMol.MolID[i] = MolID;
   
-  if(MoveType == IDENTITY_SWAP_NEW)
-  {
-    printf("scale: %.5f charge: %.5f scaleCoul: %.5f, Type: %lu, MolID: %lu\n", NewMol.scale[i], NewMol.charge[i],  NewMol.scaleCoul[i] , NewMol.Type[i], NewMol.MolID[i] );
-  }
+  // if(MoveType == IDENTITY_SWAP_NEW)
+  // {
+  //   printf("scale: %.5f charge: %.5f scaleCoul: %.5f, Type: %lu, MolID: %lu\n", NewMol.scale[i], NewMol.charge[i],  NewMol.scaleCoul[i] , NewMol.Type[i], NewMol.MolID[i] );
+  // }
   device_flag[i] = false;
 }
 

@@ -9,17 +9,18 @@ set(CMAKE_VERBOSE_MAKEFILE ON) #
 option(USE_SYCL "Using SYCL backend" ON)
 if (USE_SYCL)
 set(CMAKE_CXX_COMPILER "icpx")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O2 -qopenmp -Xarch_device -fsanitize=memory")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0 -qopenmp -Xarch_device -fsanitize=address")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0 -qopenmp")
 #else()
 #  project (gpu4pyscf C CXX CUDA Fortran)
 endif()
 
 if (USE_SYCL)
-find_package(IntelSYCL)
+  find_package(IntelSYCL)
 endif()
 
 if(USE_SYCL)
-add_definitions(-DUSE_SYCL=1)
+  add_definitions(-DUSE_SYCL=1)
 endif(USE_SYCL)
 
 # Set the C++ standard
