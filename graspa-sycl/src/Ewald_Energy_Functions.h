@@ -5,8 +5,10 @@
 //////////////////////////////////////////////////////////
 // General Functions for User-defined Complex Variables //
 //////////////////////////////////////////////////////////
+__attribute__((always_inline))
 double ComplexNorm(Complex a) { return a.real * a.real + a.imag * a.imag; }
 
+__attribute__((always_inline))
 Complex multiply(Complex a, Complex b) // a*b = c for complex numbers//
 {
   Complex c;
@@ -15,6 +17,7 @@ Complex multiply(Complex a, Complex b) // a*b = c for complex numbers//
   return c;
 }
 
+__attribute__((always_inline))
 void Initialize_Vectors(Boxsize Box, size_t Oldsize, size_t Newsize, Atoms Old,
                         size_t numberOfAtoms, sycl::int3 kmax) {
   int kx_max = kmax.x();
@@ -200,6 +203,7 @@ void JustStore_Ewald(Boxsize Box, size_t nvec, const sycl::nd_item<1> &item) {
 // CALCULATE FOURIER PART OF THE COULOMBIC ENERGY FOR A MOVE //
 ///////////////////////////////////////////////////////////////
 
+__attribute__((always_inline))
 void Fourier_Ewald_Diff(Boxsize Box, Atoms Old, double alpha_squared,
                         double prefactor, sycl::int3 kmax, double recip_cutoff,
                         size_t Oldsize, size_t Newsize, double *Blocksum,

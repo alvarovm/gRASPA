@@ -59,26 +59,26 @@ double2 setScale(double lambda);
 
 void setScaleGPU(double lambda, double& scalingVDW, double& scalingCoulomb);
 
-void CoulombReal(const ForceField FF, const double chargeA, const double chargeB, const double r, const double scaling, double* result, double prefactor, double alpha);
+__attribute__((always_inline)) void CoulombReal(const ForceField FF, const double chargeA, const double chargeB, const double r, const double scaling, double* result, double prefactor, double alpha);
 
-void PBC(double3 &posvec, double *Cell, double *InverseCell, bool Cubic);
+__attribute__((always_inline)) void PBC(double3 &posvec, double *Cell, double *InverseCell, bool Cubic);
 //__device__ void PBC(double* posvec, double* Cell, double* InverseCell, bool Cubic);
 
-void WrapInBox(double* posvec, double* Cell, double* InverseCell, bool Cubic);
+__attribute__((always_inline)) void WrapInBox(double* posvec, double* Cell, double* InverseCell, bool Cubic);
 
-void one_thread_GPU_test(Boxsize Box, Atoms* d_a, ForceField FF, double* xxx);
+__attribute__((always_inline)) void one_thread_GPU_test(Boxsize Box, Atoms* d_a, ForceField FF, double* xxx);
 
 /////////////////////////////////////////////
 // VDW + Real Pairwise Energy Calculations //
 /////////////////////////////////////////////
 
-extern SYCL_EXTERNAL void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<1> &item_ct1, uint8_t *dpct_local);
+extern SYCL_EXTERNAL __attribute__((always_inline)) void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> dpct_local);
 
-extern SYCL_EXTERNAL void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms NewMol, ForceField FF, double* Blocksum, size_t ComponentID, size_t totalAtoms, bool* flag, size_t totalthreads, size_t chainsize, size_t NblockForTrial, size_t HG_Nblock, int3 NComps, int2* ExcludeList, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> dpct_local);
+extern SYCL_EXTERNAL __attribute__((always_inline)) void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms NewMol, ForceField FF, double* Blocksum, size_t ComponentID, size_t totalAtoms, bool* flag, size_t totalthreads, size_t chainsize, size_t NblockForTrial, size_t HG_Nblock, int3 NComps, int2* ExcludeList, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> dpct_local);
 
-void REZERO_VALS(double* vals, size_t size);
+__attribute__((always_inline)) void REZERO_VALS(double* vals, size_t size);
 
-void Energy_difference_LambdaChange(Boxsize Box, Atoms *System, Atoms Mol,
+__attribute__((always_inline)) void Energy_difference_LambdaChange(Boxsize Box, Atoms *System, Atoms Mol,
                                     ForceField FF, double *BlockEnergy,
                                     size_t ComponentID, size_t totalAtoms,
                                     size_t chainsize, size_t HG_Nblock,

@@ -51,7 +51,7 @@ Insertion_Body(Components &SystemComponents, Simulations &Sims, ForceField &FF,
     double EwaldE = 0.0;
     if(EwaldCPU)
     {
-      EwaldE = CPU_EwaldDifference(Sims.Box, Sims.New, Sims.Old, FF, SystemComponents, SelectedComponent, true, SelectedTrial);
+      //EwaldE = CPU_EwaldDifference(Sims.Box, Sims.New, Sims.Old, FF, SystemComponents, SelectedComponent, true, SelectedTrial);
     }
     else
     {

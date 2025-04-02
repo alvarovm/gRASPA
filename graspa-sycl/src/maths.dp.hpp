@@ -3,8 +3,7 @@
 #include "sycl_device.hpp"
 #include <iostream>
 
-using double3 = sycl::vec<double, 3>;
-void WrapInBox(double3 posvec, double *Cell, double *InverseCell,
+void WrapInBox(sycl::double3 posvec, double *Cell, double *InverseCell,
                bool Cubic)
 {
   if(Cubic)//cubic/cuboid
@@ -24,7 +23,7 @@ void WrapInBox(double3 posvec, double *Cell, double *InverseCell,
   }
   else
   {
-    double3 s = {0.0, 0.0, 0.0};
+    sycl::double3 s = {0.0, 0.0, 0.0};
     s.x() = InverseCell[0 * 3 + 0] * posvec.x() +
             InverseCell[1 * 3 + 0] * posvec.y() +
             InverseCell[2 * 3 + 0] * posvec.z();
@@ -79,136 +78,136 @@ void inverse_matrix(double* x, double **inverse_x)
   *inverse_x = result;
 }
 
-inline void matrix_multiply_by_vector(
-    double *a, double3 b,
-    double3 &c) // 3x3(9*1) matrix (a) times 3x1(3*1) vector (b), a*b=c//
+__attribute__((always_inline))
+void matrix_multiply_by_vector(double *a, sycl::double3 b,
+                               sycl::double3 &c) // 3x3(9*1) matrix (a) times 3x1(3*1) vector (b), a*b=c//
 {
   c.x() = a[0 * 3 + 0] * b.x() + a[1 * 3 + 0] * b.y() + a[2 * 3 + 0] * b.z();
   c.y() = a[0 * 3 + 1] * b.x() + a[1 * 3 + 1] * b.y() + a[2 * 3 + 1] * b.z();
   c.z() = a[0 * 3 + 2] * b.x() + a[1 * 3 + 2] * b.y() + a[2 * 3 + 2] * b.z();
 }
 
-/*
-DPCT1011:51: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator +=(double3 &a, double3 b)
-{
-  a.x() += b.x();
-  a.y() += b.y();
-  a.z() += b.z();
-}
+// /*
+// DPCT1011:51: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator +=(sycl::double3 &a, sycl::double3 b)
+// {
+//   a.x() += b.x();
+//   a.y() += b.y();
+//   a.z() += b.z();
+// }
 
-/*
-DPCT1011:52: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator +=(double3 &a, double b)
-{
-  a.x() += b;
-  a.y() += b;
-  a.z() += b;
-} // namespace dpct_operator_overloading
+// /*
+// DPCT1011:52: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator +=(sycl::double3 &a, double b)
+// {
+//   a.x() += b;
+//   a.y() += b;
+//   a.z() += b;
+// } // namespace dpct_operator_overloading
 
-/*
-DPCT1011:53: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator-=(double3 &a, double3 b)
-{
-  a.x() -= b.x();
-  a.y() -= b.y();
-  a.z() -= b.z();
-}
+// /*
+// DPCT1011:53: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator-=(sycl::double3 &a, sycl::double3 b)
+// {
+//   a.x() -= b.x();
+//   a.y() -= b.y();
+//   a.z() -= b.z();
+// }
 
-/*
-DPCT1011:54: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator-=(double3 &a, double b)
-{
-  a.x() -= b;
-  a.y() -= b;
-  a.z() -= b;
-}
+// /*
+// DPCT1011:54: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator-=(sycl::double3 &a, double b)
+// {
+//   a.x() -= b;
+//   a.y() -= b;
+//   a.z() -= b;
+// }
 
-/*
-DPCT1011:55: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator*=(double3 &a, double3 b)
-{
-  a.x() *= b.x();
-  a.y() *= b.y();
-  a.z() *= b.z();
-}
+// /*
+// DPCT1011:55: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator*=(sycl::double3 &a, sycl::double3 b)
+// {
+//   a.x() *= b.x();
+//   a.y() *= b.y();
+//   a.z() *= b.z();
+// }
 
-/*
-DPCT1011:56: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-void operator*=(double3 &a, double b)
-{
-  a.x() *= b;
-  a.y() *= b;
-  a.z() *= b;
-} // namespace dpct_operator_overloading
+// /*
+// DPCT1011:56: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// void operator*=(sycl::double3 &a, double b)
+// {
+//   a.x() *= b;
+//   a.y() *= b;
+//   a.z() *= b;
+// } // namespace dpct_operator_overloading
 
-/*
-DPCT1011:57: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-double3 operator+(double3 &a, double3 &b)
-{
-  return double3(a.x() + b.x(), a.y() + b.y(), a.z() + b.z());
-} // namespace dpct_operator_overloading
+// /*
+// DPCT1011:57: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// sycl::double3 operator+(sycl::double3 &a, sycl::double3 &b)
+// {
+//   return sycl::double3(a.x() + b.x(), a.y() + b.y(), a.z() + b.z());
+// } // namespace dpct_operator_overloading
 
-/*
-DPCT1011:58: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-double3 operator+(double3 &a, double b)
-{
-  return double3(a.x() + b, a.y() + b, a.z() + b);
-}
-/*
-DPCT1011:59: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-double3 operator-(double3& a, double3& b)
-{
-  return double3(a.x() - b.x(), a.y() - b.y(), a.z() - b.z());
-}
+// /*
+// DPCT1011:58: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// sycl::double3 operator+(sycl::double3 &a, double b)
+// {
+//   return sycl::double3(a.x() + b, a.y() + b, a.z() + b);
+// }
+// /*
+// DPCT1011:59: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// sycl::double3 operator-(sycl::double3& a, sycl::double3& b)
+// {
+//   return sycl::double3(a.x() - b.x(), a.y() - b.y(), a.z() - b.z());
+// }
 
 
-/*
-DPCT1011:60: The tool detected overloaded operators for built-in vector types,
-which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
-interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
-standard operators instead.
-*/
-double3 operator-(double3 &a, double b)
-{
-  return double3(a.x() - b, a.y() - b, a.z() - b);
-}
+// /*
+// DPCT1011:60: The tool detected overloaded operators for built-in vector types,
+// which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
+// interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
+// standard operators instead.
+// */
+// sycl::double3 operator-(sycl::double3 &a, double b)
+// {
+//   return sycl::double3(a.x() - b, a.y() - b, a.z() - b);
+// }
 
 /*
 DPCT1011:61: The tool detected overloaded operators for built-in vector types,
@@ -216,9 +215,9 @@ which may conflict with the SYCL 2020 standard operators (see 4.14.2.1 Vec
 interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
 standard operators instead.
 */
-double3 operator*(double3 &a, double3& b)
+sycl::double3 operator*(sycl::double3 &a, sycl::double3& b)
 {
-    return double3(a.x() * b.x(), a.y() * b.y(), a.z() * b.z());
+    return sycl::double3(a.x() * b.x(), a.y() * b.y(), a.z() * b.z());
 }
 
 /*
@@ -228,13 +227,13 @@ interface). The tool inserted a namespace to avoid the conflict. Use SYCL 2020
 standard operators instead.
 */
 
-//double3 operator*(double3 a, const double& b)
-double3 operator*(const double& b, double3& a)
+//sycl::double3 operator*(sycl::double3 a, const double& b)
+sycl::double3 operator*(const double& b, sycl::double3& a)
 {
-    return double3(a.x() * b, a.y() * b, a.z() * b);
+    return sycl::double3(a.x() * b, a.y() * b, a.z() * b);
 }
 
-double dot(double3 a, double3 b)
+double dot(sycl::double3 a, sycl::double3 b)
 {
   return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
 }
@@ -283,7 +282,8 @@ MoveEnergy operator -(MoveEnergy A, MoveEnergy B)
   X -= B; return X;
 }
 
-void PBC(double3 &posvec, double *Cell, double *InverseCell, bool Cubic)
+__attribute__((always_inline))
+void PBC(sycl::double3 &posvec, double *Cell, double *InverseCell, bool Cubic)
 {
   if(Cubic)//cubic/cuboid
   {
@@ -299,7 +299,7 @@ void PBC(double3 &posvec, double *Cell, double *InverseCell, bool Cubic)
   }
   else
   {
-    double3 s = {0.0, 0.0, 0.0};
+    sycl::double3 s = {0.0, 0.0, 0.0};
     s.x() = InverseCell[0 * 3 + 0] * posvec.x() +
             InverseCell[1 * 3 + 0] * posvec.y() +
             InverseCell[2 * 3 + 0] * posvec.z();

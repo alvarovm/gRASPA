@@ -284,12 +284,13 @@ void one_thread_GPU_test(Boxsize Box, Atoms* System, ForceField FF, double* xxx)
   //printf("xxx: %.10f\n", Total_energy);
 }
 
-void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<1> &item, uint8_t *dpct_local)
+__attribute__((always_inline))
+void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms Old, Atoms New, ForceField FF, double* BlockEnergy, size_t ComponentID, size_t totalAtoms, size_t chainsize, bool* flag, size_t HG_Nblock, size_t GG_Nblock, bool Do_New, bool Do_Old, int3 NComps, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> sdata)
 {
   ///////////////////////////////////////////////////////
   //All variables passed here should be device pointers//
   ///////////////////////////////////////////////////////
-  auto sdata = (double *)dpct_local;
+  //auto sdata = (double *)dpct_local;
   size_t blockIdx  = item.get_group(0);
   size_t blockDim  = item.get_local_range(0);
   size_t threadIdx = item.get_local_id(0);
@@ -454,6 +455,7 @@ void Calculate_Single_Body_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms*
   }
 }
 
+__attribute__((always_inline))
 void Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Boxsize Box, Atoms* System, Atoms NewMol, ForceField FF, double* Blocksum, size_t ComponentID, size_t totalAtoms, bool* flag, size_t totalthreads, size_t chainsize, size_t NblockForTrial, size_t HG_Nblock, int3 NComps, int2* ExcludeList, const sycl::nd_item<1> &item, sycl::decorated_local_ptr<double> sdata)
 {
   //Dividing Nblocks into Nblocks for host-guest and for guest-guest//

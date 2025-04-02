@@ -473,6 +473,7 @@ void RotationAroundAxis(Atoms Mol,size_t i,double theta, int Axis)
   Mol.pos[i].z() = c;
 }
 
+__attribute__((always_inline))
 void get_new_position(Simulations Sim, ForceField FF, size_t start_position,
                       size_t SelectedComponent, sycl::double3 *RANDOM, sycl::double3 Max,
                       size_t index, int MoveType,

@@ -118,11 +118,11 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
 
   // Setup for the pairwise calculation //
   // New Features: divide the Blocks into two parts: Host-Guest + Guest-Guest //
+
   size_t NHostAtom = 0; size_t NGuestAtom = 0;
   for (size_t i = 0; i < SystemComponents.NComponents.y(); i++)
     NHostAtom += SystemComponents.Moleculesize[i] * SystemComponents.NumberOfMolecule_for_Component[i];
-  for (size_t i = SystemComponents.NComponents.y();
-       i < SystemComponents.NComponents.x(); i++)
+  for (size_t i = SystemComponents.NComponents.y(); i < SystemComponents.NComponents.x(); i++)
     NGuestAtom+= SystemComponents.Moleculesize[i] * SystemComponents.NumberOfMolecule_for_Component[i];
 
   size_t HG_Nthread=0; size_t HG_Nblock=0; Setup_threadblock(NHostAtom *  Molsize, &HG_Nblock, &HG_Nthread);
@@ -132,17 +132,12 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
   //printf("Total_Comp: %zu, Host Comp: %zu, Adsorbate Comp: %zu\n", SystemComponents.NComponents.x, SystemComponents.NComponents.y, SystemComponents.NComponents.z);
   //printf("NHostAtom: %zu, HG_Nblock: %zu, NGuestAtom: %zu, GG_Nblock: %zu\n", NHostAtom, HG_Nblock, NGuestAtom, GG_Nblock);
   /*
-  DPCT1049:1: The work-group size passed to the SYCL kernel may exceed the
-  limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
-  */
-  /*
   DPCT1069:69: The argument 'FF' of the kernel function contains virtual
   pointer(s), which cannot be dereferenced. Try to migrate the code with
   "usm-level=restricted".
   */
 
-  int3 NComp = SystemComponents.NComponents; 
+  sycl::int3 NComp = SystemComponents.NComponents; 
 //  que.submit([&](sycl::handler &cgh) {
 //  sycl::local_accessor<uint8_t, 1> local_mem( sycl::range<1>(2 * HGGG_Nthread * sizeof(double)), cgh);
 //
@@ -158,7 +153,7 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
 
 
   que.submit([&](sycl::handler &cgh) {
-    sycl::local_accessor<uint8_t, 1> local_mem(sycl::range<1>(2 * HGGG_Nthread), cgh);
+    sycl::local_accessor<double, 1> local_mem(sycl::range<1>(2 * HGGG_Nthread), cgh);
 
     cgh.parallel_for(sycl::nd_range<1>(HGGG_Nblock * HGGG_Nthread,
                                        HGGG_Nthread),
@@ -167,10 +162,9 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
                 Sims.Box, Sims.d_a, Sims.Old, Sims.New, FF, Sims.Blocksum,
                 SelectedComponent, Atomsize, Molsize, Sims.device_flag,
                 HG_Nblock, GG_Nblock, Do_New, Do_Old, NComp,
-                item, local_mem.get_multi_ptr<sycl::access::decorated::no>().get());
+                item, local_mem.get_multi_ptr<sycl::access::decorated::yes>());
         });
     }).wait();
-
 
   que.memcpy(Sims.flag, Sims.device_flag, sizeof(bool)).wait();
 
