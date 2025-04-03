@@ -12,8 +12,7 @@
 #include "fxn_main.h"
 int main(void)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.default_queue();
+  sycl::queue &que = *sycl_get_queue();
 
   size_t  Allocate_space_Adsorbate = 0; //Variable for recording allocate_space on the device for adsorbates //
 
@@ -162,10 +161,10 @@ int main(void)
     Sims[a].Box.Alpha    = Box[a].Alpha;    Sims[a].Box.Prefactor        = Box[a].Prefactor;
     Sims[a].Box.tol1     = Box[a].tol1;     Sims[a].Box.ExcludeHostGuestEwald = Box[a].ExcludeHostGuestEwald;
 
-    Sims[a].Box.Cell = sycl::malloc_device<double>(9, q_ct1);
-    Sims[a].Box.InverseCell = sycl::malloc_device<double>(9, q_ct1);
-    q_ct1.memcpy(Sims[a].Box.Cell, Box[a].Cell, 9 * sizeof(double)).wait();
-    q_ct1.memcpy(Sims[a].Box.InverseCell, Box[a].InverseCell, 9 * sizeof(double)).wait();
+    Sims[a].Box.Cell = sycl::malloc_device<double>(9, que);
+    Sims[a].Box.InverseCell = sycl::malloc_device<double>(9, que);
+    que.memcpy(Sims[a].Box.Cell, Box[a].Cell, 9 * sizeof(double)).wait();
+    que.memcpy(Sims[a].Box.InverseCell, Box[a].InverseCell, 9 * sizeof(double)).wait();
 
     Sims[a].Box.kmax = Box[a].kmax;
     // PREPARE VALUES FOR THE WIDOM STRUCT, DECLARE THE RESULT POINTERS IN WIDOM //
@@ -177,7 +176,7 @@ int main(void)
     //Zhao's note: here think about multiple simulations where we are doing indepedent simulations, each has a fractional molecule, need to be careful//
     bool AlreadyHasFractionalMolecule = false;
     Atoms device_System[NumberOfComponents];
-    Sims[a].d_a = sycl::malloc_device<Atoms>(NumberOfComponents, q_ct1);
+    Sims[a].d_a = sycl::malloc_device<Atoms>(NumberOfComponents, que);
     if(RunSingleSim)
     {
       if(a == SelectedSim && ReadRestart) {RestartFileParser(Sims[a], SystemComponents[a].HostSystem, SystemComponents[a]); AlreadyHasFractionalMolecule = true;}
@@ -185,7 +184,7 @@ int main(void)
     Copy_Atom_data_to_device(NumberOfComponents, device_System, SystemComponents[a].HostSystem);
     Prepare_TempSystem_On_Host(SystemComponents[a].TempSystem);
 
-    q_ct1.memcpy(Sims[a].d_a, device_System, sizeof(Atoms)*NumberOfComponents).wait();
+    que.memcpy(Sims[a].d_a, device_System, sizeof(Atoms)*NumberOfComponents).wait();
 
     // SET UP TEMPORARY ARRAYS //
     Setup_Temporary_Atoms_Structure(Sims[a].Old, SystemComponents[a].HostSystem);

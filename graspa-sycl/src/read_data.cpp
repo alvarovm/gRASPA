@@ -1,5 +1,4 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#include "sycl_device.hpp"
 #include <filesystem>
 #include <stdio.h>
 #include <fstream>

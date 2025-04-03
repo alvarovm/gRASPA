@@ -1,5 +1,3 @@
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
 static inline void Print_Cycle_Statistics(size_t Cycle,
                                           Components &SystemComponents)
 {
