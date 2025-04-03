@@ -93,21 +93,6 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
 
   //Zhao's note: possible bug, you may only need 3 instead of 3 * N random numbers//
   Random.Check(Molsize);
-  /*
-  DPCT1049:0: The work-group size passed to the SYCL kernel may exceed the
-  limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
-  */
-  /*
-  DPCT1069:67: The argument 'Sims' of the kernel function contains virtual
-  pointer(s), which cannot be dereferenced. Try to migrate the code with
-  "usm-level=restricted".
-  */
-  /*
-  DPCT1069:68: The argument 'FF' of the kernel function contains virtual
-  pointer(s), which cannot be dereferenced. Try to migrate the code with
-  "usm-level=restricted".
-  */
   que.parallel_for(sycl::nd_range<1>(Molsize, Molsize),
                    [=](sycl::nd_item<1> item) {
                      get_new_position(Sims, FF, start_position,
@@ -131,11 +116,6 @@ static inline MoveEnergy SingleBodyMove(Components& SystemComponents, Simulation
   size_t HGGG_Nblock  = HG_Nblock + GG_Nblock;
   //printf("Total_Comp: %zu, Host Comp: %zu, Adsorbate Comp: %zu\n", SystemComponents.NComponents.x, SystemComponents.NComponents.y, SystemComponents.NComponents.z);
   //printf("NHostAtom: %zu, HG_Nblock: %zu, NGuestAtom: %zu, GG_Nblock: %zu\n", NHostAtom, HG_Nblock, NGuestAtom, GG_Nblock);
-  /*
-  DPCT1069:69: The argument 'FF' of the kernel function contains virtual
-  pointer(s), which cannot be dereferenced. Try to migrate the code with
-  "usm-level=restricted".
-  */
 
   sycl::int3 NComp = SystemComponents.NComponents; 
 //  que.submit([&](sycl::handler &cgh) {
