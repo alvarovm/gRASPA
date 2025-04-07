@@ -554,27 +554,21 @@ struct Components
     sycl::queue &que = *sycl_get_queue();
     que
         .memcpy(TempSystem.pos, &GPU_System.pos[start],
-                size * sizeof(double3))
-        .wait();
+                size * sizeof(double3));
     que
         .memcpy(TempSystem.scale, &GPU_System.scale[start],
-                size * sizeof(double))
-        .wait();
+                size * sizeof(double));
     que
         .memcpy(TempSystem.charge, &GPU_System.charge[start],
-                size * sizeof(double))
-        .wait();
+                size * sizeof(double));
     que
         .memcpy(TempSystem.scaleCoul, &GPU_System.scaleCoul[start],
-                size * sizeof(double))
-        .wait();
+                size * sizeof(double));
     que
-        .memcpy(TempSystem.Type, &GPU_System.Type[start], size * sizeof(size_t))
-        .wait();
+        .memcpy(TempSystem.Type, &GPU_System.Type[start], size * sizeof(size_t));
     que
         .memcpy(TempSystem.MolID, &GPU_System.MolID[start],
-                size * sizeof(size_t))
-        .wait();
+                size * sizeof(size_t));
   }
   MoveEnergy tempdeltaE;
   MoveEnergy CreateMoldeltaE;

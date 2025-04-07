@@ -306,7 +306,7 @@ static inline double Widom_Move_FirstBead_PARTIAL(Components& SystemComponents, 
   //Assuming NumberOfTrials < Default Block size//
   que.parallel_for<class get_random_trail_position_kernel>(sycl::nd_range<1>(NumberOfTrials, NumberOfTrials), [=](sycl::nd_item<1> item) {
     get_random_trial_position(Sims.Box, Sims.d_a, Sims.New, Sims.device_flag, Random.device_random, Random.offset, start_position, SelectedComponent, SelectedMolID, MoveType, proposed_scale, item);
-  }).wait();
+  });
   Random.Update(NumberOfTrials);
 
   //printf("Selected Component: %zu, Selected Molecule: %zu (%zu), Total in Component: %zu\n", SelectedComponent, SelectedMolID, SelectedMolInComponent, SystemComponents.NumberOfMolecule_for_Component[SelectedComponent]);
@@ -335,11 +335,12 @@ static inline double Widom_Move_FirstBead_PARTIAL(Components& SystemComponents, 
                                                                    threadsNeeded,1, HGGG_Nblock, HG_Nblock, NComp,
                                                                    Sims.ExcludeList, item, local_mem.get_multi_ptr<sycl::access::decorated::yes>());
       });
-    }).wait();
-    que.memcpy(Sims.flag, Sims.device_flag, NumberOfTrials * sizeof(bool)).wait();
+    });
+    que.memcpy(Sims.flag, Sims.device_flag, NumberOfTrials * sizeof(bool));
 
     double3* pos = (double3*) malloc(NumberOfTrials * sizeof(double3));
-    que.memcpy(pos, Sims.New.pos, NumberOfTrials * sizeof(double3)).wait();
+    que.memcpy(pos, Sims.New.pos, NumberOfTrials * sizeof(double3));
+    que.wait();
     //for(size_t i = 0; i < NumberOfTrials; i++) printf("Trial %zu, xyz: %.5f %.5f %.5f\n", i, pos[i].x(), pos[i].y(), pos[i].z());
   }
   //printf("OldNBlock: %zu, HG_Nblock: %zu, GG_Nblock: %zu, HGGG_Nblock: %zu\n", Nblock, HG_Nblock, GG_Nblock, HGGG_Nblock);
@@ -478,7 +479,7 @@ static inline double Widom_Move_Chain_PARTIAL(Components& SystemComponents, Simu
                          Calculate_Multiple_Trial_Energy_SEPARATE_HostGuest_VDWReal(Sims.Box, Sims.d_a,
                                                                                     Sims.New, FF, Sims.Blocksum, SelectedComponent, Atomsize, Sims.device_flag, threadsNeeded, chainsize, HGGG_Nblock, HG_Nblock, NComp, Sims.ExcludeList, item, local_mem.get_multi_ptr<sycl::access::decorated::yes>());
                        });
-    }).wait();
+    });
     que.memcpy(Sims.flag, Sims.device_flag, Widom.NumberWidomTrialsOrientations * sizeof(bool)).wait();
   }
   //printf("CHAIN ENERGIES\n");
