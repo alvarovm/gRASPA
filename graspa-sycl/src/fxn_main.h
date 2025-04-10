@@ -361,12 +361,11 @@ inline void Allocate_Copy_Ewald_Vector(Boxsize &device_Box,
              storedEik[i].imag);
   }
   sycl_get_queue()
-      ->memcpy(device_Box.storedEik, storedEik, storedEiksize * sizeof(Complex))
-      .wait();
+    ->memcpy(device_Box.storedEik, storedEik, storedEiksize * sizeof(Complex));
   sycl_get_queue()
       ->memcpy(device_Box.FrameworkEik, FrameworkEik,
-               storedEiksize * sizeof(Complex))
-      .wait();
+               storedEiksize * sizeof(Complex));
+  sycl_get_queue()->wait();
   printf(
       "****** DONE Allocating Ewald WaveVectors (INITIAL STAGE ONLY) ******\n");
 }
@@ -398,10 +397,10 @@ inline void Check_Simulation_Energy(Boxsize &Box, Atoms *System, ForceField FF,
   MoveEnergy ENERGY;
   Atoms device_System[SystemComponents.Total_Components];
   que.memcpy(device_System, Sim.d_a,
-             SystemComponents.Total_Components * sizeof(Atoms))
-      .wait();
-  que.memcpy(Box.Cell, Sim.Box.Cell, 9 * sizeof(double)).wait();
-  que.memcpy(Box.InverseCell, Sim.Box.InverseCell, 9 * sizeof(double)).wait();
+             SystemComponents.Total_Components * sizeof(Atoms));
+  que.memcpy(Box.Cell, Sim.Box.Cell, 9 * sizeof(double));
+  que.memcpy(Box.InverseCell, Sim.Box.InverseCell, 9 * sizeof(double));
+  que.wait();
   // Update every value that can be changed during a volume move//
   Box.Volume = Sim.Box.Volume;
   Box.ReciprocalCutOff = Sim.Box.ReciprocalCutOff;
@@ -538,23 +537,18 @@ inline void Copy_AtomData_from_Device(Atoms *System, Atoms *Host_System,
     Host_System[ijk].Allocate_size = System[ijk].Allocate_size;
 
     que.memcpy(Host_System[ijk].pos, System[ijk].pos,
-               sizeof(sycl::double3) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(sycl::double3) * System[ijk].Allocate_size);
     que.memcpy(Host_System[ijk].scale, System[ijk].scale,
-               sizeof(double) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(double) * System[ijk].Allocate_size);
     que.memcpy(Host_System[ijk].charge, System[ijk].charge,
-               sizeof(double) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(double) * System[ijk].Allocate_size);
     que.memcpy(Host_System[ijk].scaleCoul, System[ijk].scaleCoul,
-               sizeof(double) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(double) * System[ijk].Allocate_size);
     que.memcpy(Host_System[ijk].Type, System[ijk].Type,
-               sizeof(size_t) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(size_t) * System[ijk].Allocate_size);
     que.memcpy(Host_System[ijk].MolID, System[ijk].MolID,
-               sizeof(size_t) * System[ijk].Allocate_size)
-        .wait();
+               sizeof(size_t) * System[ijk].Allocate_size);
+    que.wait();
     Host_System[ijk].size = System[ijk].size;
   }
 }
