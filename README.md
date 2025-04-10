@@ -100,4 +100,6 @@ make
 * Christopher Knight (Argonne National Laboratory, knightc@anl.gov)
 * Alvaro Vazquez Mayagoitia (Argonne National Laboratory, vama@alcf.anl.gov)
 * Randall Q. Snurr (Northwestern University, snurr@northwestern.edu)
+### SYCL support
+* Abhishek Bagusetty (Argonne National Laboratory, @abagusetty)
 
