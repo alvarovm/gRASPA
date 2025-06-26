@@ -21,7 +21,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -qopenmp -fsycl-device-code-split
 endif()
 
 if (USE_SYCL)
-  find_package(IntelSYCL)
+  include(${CMAKE_CURRENT_LIST_DIR}/cmake/IntelSYCLConfig.cmake)
+  #find_package(IntelSYCL)
 endif()
 
 if(USE_SYCL)
